@@ -1,6 +1,6 @@
 Pod::Spec.new do |s|
     s.name             = 'Promises'
-    s.version          = '1.0.0'
+    s.version          = '1.0.1'
     s.summary          = 'I promise the future!'
     s.description      = <<-DESC
                             It's just another Promise library that works on

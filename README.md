@@ -13,12 +13,12 @@ pod 'Promises'
 
 ### SPM
 ```
-.package(url: "https://github.com/CoreKit/Promises.git", from: "1.0.0"),
+.package(url: "https://github.com/CoreKit/Promises.git", from: "1.0.1"),
 ```
 
 ### Carthage
 ```
-github "CoreKit/Promises" "1.0.0"
+github "CoreKit/Promises" "1.0.1"
 ```
 
 ## Pod cheatsheet

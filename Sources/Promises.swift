@@ -352,7 +352,24 @@ public enum Promises {
             }
         }
     }
-    
+
+    @discardableResult
+    public static func wait<T>(_ promises: [Promise<T>]) -> Promise<Void> {
+        return Promise<Void> { fulfill, _ in
+            guard !promises.isEmpty else {
+                return fulfill(())
+            }
+            let complete: ((Any) -> Void) = { _ in
+                if !promises.contains(where: { $0.isPending }) {
+                    fulfill(())
+                }
+            }
+            for promise in promises {
+                promise.then(success: complete, failure: complete)
+            }
+        }
+    }
+
     @discardableResult
     public static func race<T>(_ promises: [Promise<T>]) -> Promise<T> {
         return Promise<T> { fulfill, reject in
