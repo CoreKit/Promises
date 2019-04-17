@@ -248,7 +248,7 @@ open class Promise<T> {
 public extension Promise {
     
     @discardableResult
-    public func tap(queue: DispatchQueue? = nil, _ block: @escaping (() -> Void)) -> Promise<T> {
+    func tap(queue: DispatchQueue? = nil, _ block: @escaping (() -> Void)) -> Promise<T> {
         return self.thenMap(queue: queue) { value -> T in
             block()
             return value
@@ -256,7 +256,7 @@ public extension Promise {
     }
     
     @discardableResult
-    public func tap(queue: DispatchQueue? = nil, _ block: @escaping ((T) -> Void)) -> Promise<T> {
+    func tap(queue: DispatchQueue? = nil, _ block: @escaping ((T) -> Void)) -> Promise<T> {
         return self.thenMap(queue: queue) { value -> T in
             block(value)
             return value
@@ -264,7 +264,7 @@ public extension Promise {
     }
     
     @discardableResult
-    public func validate(_ condition: @escaping (T) -> Bool) -> Promise<T> {
+    func validate(_ condition: @escaping (T) -> Bool) -> Promise<T> {
         return self.thenMap { value -> T in
             guard condition(value) else {
                 throw Promises.Errors.validation
@@ -274,17 +274,17 @@ public extension Promise {
     }
     
     @discardableResult
-    public func always(queue: DispatchQueue? = nil, _ block: @escaping () -> Void) -> Promise<T> {
+    func always(queue: DispatchQueue? = nil, _ block: @escaping () -> Void) -> Promise<T> {
         return self.then(queue: queue, success: { _ in block() }, failure: { _ in block() })
     }
     
     @discardableResult
-    public func timeout(_ timeout: DispatchTimeInterval) -> Promise<T> {
+    func timeout(_ timeout: DispatchTimeInterval) -> Promise<T> {
         return Promises.race([self, Promises.timeout(timeout)])
     }
     
     @discardableResult
-    public func recover(recovery: @escaping (Error) throws -> Promise<T>) -> Promise<T> {
+    func recover(recovery: @escaping (Error) throws -> Promise<T>) -> Promise<T> {
         return Promise<T> { fulfill, reject in
             self.then(success: fulfill, failure: { error in
                 do {
@@ -383,18 +383,54 @@ public enum Promises {
     }
     
     @discardableResult
-    public static func zip<T, U>(_ first: Promise<T>, with second: Promise<U>) -> Promise<(T, U)> {
-        return Promise<(T, U)> { fulfill, reject in
+    public static func zip<T1, T2>(_ p1: Promise<T1>,
+                                   _ last: Promise<T2>) -> Promise<(T1, T2)> {
+        return Promise<(T1, T2)> { fulfill, reject in
             let resolver: (Any) -> Void = { _ in
-                if let firstValue = first.value, let secondValue = second.value {
+                if let firstValue = p1.value, let secondValue = last.value {
                     fulfill((firstValue, secondValue))
                 }
             }
-            first.then(success: resolver, failure: reject)
-            second.then(success: resolver, failure: reject)
+            p1.then(success: resolver, failure: reject)
+            last.then(success: resolver, failure: reject)
         }
     }
     
+    @discardableResult
+    public static func zip<T1, T2, T3>(_ p1: Promise<T1>,
+                                       _ p2: Promise<T2>,
+                                       _ last: Promise<T3>) -> Promise<(T1, T2, T3)> {
+        return Promise<(T1, T2, T3)> { (fulfill: @escaping ((T1, T2, T3)) -> Void, reject: @escaping (Error) -> Void) in
+            let zipped: Promise<(T1, T2)> = zip(p1, p2)
+
+            let resolver: (Any) -> Void = { _ in
+                if let zippedValue = zipped.value, let lastValue = last.value {
+                    fulfill((zippedValue.0, zippedValue.1, lastValue))
+                }
+            }
+            zipped.then(success: resolver, failure: reject)
+            last.then(success: resolver, failure: reject)
+        }
+    }
+
+    @discardableResult
+    public static func zip<T1, T2, T3, T4>(_ p1: Promise<T1>,
+                                           _ p2: Promise<T2>,
+                                           _ p3: Promise<T3>,
+                                           _ last: Promise<T4>) -> Promise<(T1, T2, T3, T4)> {
+        return Promise<(T1, T2, T3, T4)> { (fulfill: @escaping ((T1, T2, T3, T4)) -> Void, reject: @escaping (Error) -> Void) in
+            let zipped: Promise<(T1, T2, T3)> = zip(p1, p2, p3)
+
+            let resolver: (Any) -> Void = { _ in
+                if let zippedValue = zipped.value, let lastValue = last.value {
+                    fulfill((zippedValue.0, zippedValue.1, zippedValue.2, lastValue))
+                }
+            }
+            zipped.then(success: resolver, failure: reject)
+            last.then(success: resolver, failure: reject)
+        }
+    }
+
     @discardableResult
     public static func retry<T>(times: Int,
                                 delay: DispatchTimeInterval,
